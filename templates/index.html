@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sequential WhatsApp Msg Sender</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Reset some basic elements */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            color: #333;
+        }
+
+        /* Main container to center content and set max width */
+        .wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap; /* allows wrapping on smaller screens */
+            gap: 20px;
+        }
+
+        /* Left and right panes */
+        .left-pane, .right-pane {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            width: 100%; /* default to full width on small screens */
+        }
+
+        h1 {
+            display: flex;
+            align-items: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        h1 img {
+            height: 40px;
+            margin-right: 10px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        textarea {
+            width: 100%;
+            height: 220px;
+            resize: vertical;
+            font-size: 18px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        input[type="text"],
+        input[type="file"],
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        button {
+            padding: 14px 28px;
+            font-size: 20px;
+            background-color: #0b7a75;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Console header container for heading and buttons on one line */
+        .console-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* heading on the left, buttons on the right */
+            margin-bottom: 10px;
+        }
+        .console-buttons {
+            display: flex;
+            gap: 10px; /* space between buttons */
+        }
+
+        /* Console output area */
+        #console {
+            border: 1px solid #000;
+            width: 100%;
+            height: 400px;
+            padding: 10px;
+            white-space: pre-wrap;
+            background-color: #fff;
+            font-size: 16px;
+            overflow-y: auto;
+        }
+
+        /* Responsive: two columns on screens >= 768px */
+        @media (min-width: 768px) {
+            .left-pane, .right-pane {
+                flex: 1;
+                margin-bottom: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Left Pane -->
+        <div class="left-pane">
+            <h1>
+                <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp Logo">
+                Sequential WhatsApp Msg Sender
+            </h1>
+            <form id="dataForm">
+                <label for="message">Message:</label>
+                <textarea id="message" name="message" placeholder="Enter your WhatsApp message here..." required></textarea>
+                
+                <label for="csv">CSV Upload:</label>
+                <input type="file" id="csv" name="csv" accept=".csv" required />
+                
+                <!-- Image URL is now optional (no required attribute) -->
+                <label for="image_url">Image URL (Optional):</label>
+                <input type="text" id="image_url" name="image_url" placeholder="Enter image URL if any" />
+
+                <label for="api_key">API Key (required):</label>
+                <input type="text" id="api_key" name="api_key" placeholder="Enter API Key" required />
+
+                <label for="min_sleep">Min Sleep (seconds):</label>
+                <input type="number" step="1" id="min_sleep" name="min_sleep" value="10" />
+
+                <label for="max_sleep">Max Sleep (seconds):</label>
+                <input type="number" step="1" id="max_sleep" name="max_sleep" value="16" />
+                
+                <button type="submit" id="submitBtn">Submit</button>
+            </form>
+        </div>
+        
+        <!-- Right Pane -->
+        <div class="right-pane">
+            <!-- Console header with heading + buttons -->
+            <div class="console-header">
+                <h2>Console Output</h2>
+                <div class="console-buttons">
+                    <button type="button" id="clearConsoleBtn">Clear Console</button>
+                    <button type="button" id="abortBtn">Abort</button>
+                </div>
+            </div>
+            <div id="console"></div>
+        </div>
+    </div>
+
+    <script>
+        // SSE connection
+        const eventSource = new EventSource("/stream");
+        const consoleDiv = document.getElementById("console");
+        const submitBtn = document.getElementById("submitBtn");
+        const clearBtn = document.getElementById("clearConsoleBtn");
+        const abortBtn = document.getElementById("abortBtn");
+
+        // Receive log messages
+        eventSource.onmessage = function(event) {
+            if (event.data === "__PROCESS_COMPLETE__") {
+                appendLog("Process complete!");
+                submitBtn.disabled = false;
+                return;
+            }
+            appendLog(event.data);
+        };
+
+        function appendLog(text) {
+            const newLog = document.createElement("div");
+            newLog.textContent = text;
+            consoleDiv.appendChild(newLog);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        // Clear the console
+        clearBtn.addEventListener("click", function() {
+            consoleDiv.innerHTML = "";
+        });
+
+        // Abort button: POST to /abort
+        abortBtn.addEventListener("click", async function() {
+            appendLog("Sending abort signal...");
+            try {
+                const response = await fetch("/abort", {
+                    method: "POST"
+                });
+                if (response.ok) {
+                    appendLog("Abort signal sent to server.");
+                } else {
+                    appendLog("Failed to send abort signal: " + response.status);
+                }
+            } catch (error) {
+                appendLog("Error sending abort signal: " + error);
+            }
+        });
+
+        // Submit form
+        const form = document.getElementById("dataForm");
+        form.addEventListener("submit", async function(event) {
+            event.preventDefault();
+            submitBtn.disabled = true; // disable while processing
+
+            const formData = new FormData(form);
+            try {
+                await fetch("/submit", {
+                    method: "POST",
+                    body: formData
+                });
+                appendLog("Process started. Waiting for logs...");
+            } catch (error) {
+                appendLog("Error starting process: " + error);
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
