@@ -51,10 +51,9 @@ requests
 
 ### Clone the repository
 ```bash
-git clone https://github.com/yourusername/sequential-whatsapp-message-sender.git
+git clone https://github.com/Mohsin-Devjani/Sequential-WhatsApp-Message-Sender.git
 cd sequential-whatsapp-message-sender
 ```
-💡 Replace yourusername with your GitHub username or fork link.
 
 ### (Optional) Create a Virtual Environment
 It is recommended to use a virtual environment to manage dependencies. Create and activate one using the following commands:
@@ -75,6 +74,7 @@ Ensure you are in the project directory and install the required libraries:
 ```bash
 pip install -r requirements.txt
 ```
+---
 
 ### Run the Application
 Start the Flask application by running:
