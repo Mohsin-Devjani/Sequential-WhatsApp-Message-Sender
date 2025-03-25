@@ -63,11 +63,23 @@ def background_process(df, message, image_url, api_key, log_queue, min_sleep, ma
                 log_queue.put("Aborting process before sending next message...")
                 break
 
+            # Check API status before sending each message
+            check_url = f"https://api.textmebot.com/connect.php?apikey={api_key}&json=yes"
+            check_response = requests.get(check_url)
+            if check_response.status_code == 200:
+                check_data = check_response.json()
+                if check_data.get("status") == "banned":
+                    log_queue.put("WhatsApp Account got banned! Exiting script now.")
+                    stop_event.set()
+                    break
+            else:
+                log_queue.put(f"Error checking API status: {check_response.status_code}")
+
             result = send_msgs(row, message, image_url, api_key, log_queue, min_sleep, max_sleep)
             df.at[index, "success"] = result
 
         if stop_event.is_set():
-            log_queue.put("Process was aborted by user.")
+            log_queue.put("Process was aborted!")
         else:
             log_queue.put("All messages processed.")
     except Exception as e:
